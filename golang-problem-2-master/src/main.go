@@ -211,39 +211,6 @@ func ReadSendMessageRequest(fileName string) (*SendMessage, error) {
 			message.ReplyMarkup = *ptrReplyMarkup
 		}
 
-		// if inlineKeyBtn := replyMrkUp.InlineKeyboard; inlineKeyBtn != nil {
-		// 	//	Marshal the inlineKetBtn which has map[string]interface{} to []byte
-		// 	data, err := json.Marshal(inlineKeyBtn)
-		// 	if err != nil {
-		// 		return nil, errors.New("can not marshal map[string]interface{} to []byte")
-		// 	}
-
-		// 	//	Unmarshal for type conversion from []byte to InlineKeyboardButton
-		// 	var inlineKeyboardBtn [][]InlineKeyboardButton
-		// 	err = json.Unmarshal(data, &inlineKeyboardBtn)
-		// 	if err != nil {
-		// 		return nil, errors.New("can not unmarshal to InlineKeyboardButton")
-		// 	}
-
-		// 	replyMrkUp.InlineKeyboard = inlineKeyboardBtn
-		// }
-		// if keyBtn := replyMrkUp.Keyboard; keyBtn != nil {
-		// 	//	Marshal the keyBtn which has map[string]interface{} to []byte
-		// 	data, err := json.Marshal(keyBtn)
-		// 	if err != nil {
-		// 		return nil, errors.New("can not marshal map[string]interface{} to []byte")
-		// 	}
-
-		// 	//	Unmarshal for type conversion from []byte to KeyboardButton
-		// 	var keyboardBtn [][]KeyboardButton
-		// 	err = json.Unmarshal(data, &keyboardBtn)
-		// 	if err != nil {
-		// 		return nil, errors.New("can not unmarshal to KeyboardButton")
-		// 	}
-
-		// 	replyMrkUp.Keyboard = keyBtn
-		// }
-
 	}
 	return message, nil
 
