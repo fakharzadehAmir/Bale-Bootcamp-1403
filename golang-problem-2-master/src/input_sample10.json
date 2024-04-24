@@ -1,0 +1,10 @@
+
+
+  {
+    "chat_id": "2",
+    "text": "<b>quera</b> vs <b>bale</b>",
+    "parse_mode": "HTML",
+    "reply_markup": "{ \"keyboard\": [[{\"text\": \"Option 1\", \"request_contact\": true, \"request_location\": false},{\"text\": \"Option 2\" },{\"text\": \"Option 8\",  \"request_contact\": false, \"request_location\": true},{\"text\": \"Option 4\",  \"request_contact\": true},{\"text\": \"Option 5\",  \"request_location\": true},{\"text\": \"Option 9\", \"request_location\": false}],[{\"text\": \"Option 10\", \"request_location\": false, \"requested_contact\": false}]]}"
+        
+  }
+  

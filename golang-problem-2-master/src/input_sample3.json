@@ -1,0 +1,28 @@
+{
+    "chat_id": "1",
+    "text": "Salam in Markdown 1 e:",
+    "parse_mode": "Markdown",
+    "reply_markup": {
+      "inline_keyboard": [
+        [
+            {"text": "Option 1", "url": "https://example.com/1"},
+            {"text": "Option 2", "url": "https://example.com/2"},
+            {"text": "Option 8", "callback_data": "/check_8"},
+            {"text": "Option 9", "callback_data": "/check_9"}
+        ],
+        [
+            {"text": "Option 4", "url": "https://example.com/4"},
+            {"text": "Option 5", "url": "https://example.com/5"},
+            {"text": "Option 6", "url": "https://example.com/6"}
+        ],
+        [
+            {"text": "Option 3", "callback_data": "/check_3"},
+            {"text": "Option 7", "callback_data": "/check_7"}
+        ],
+        [
+            {"text": "Option 10", "url": "https://example.com/10"}
+        ]
+      ]
+    }
+  }
+  
