@@ -43,7 +43,7 @@ type IKeyboard interface {
 	InlineKeyboardButton | KeyboardButton
 }
 
-func DetectingKeyboardType[TypeKeyboard IKeyboard](replies interface{}, keyboard_type string) ([][]TypeKeyboard, error) {
+func detectingKeyboardType[TypeKeyboard IKeyboard](replies interface{}, keyboard_type string) ([][]TypeKeyboard, error) {
 
 	//	Function that makes an appropriate instance for our slice
 	convToTypeKeyboard := func(reply interface{}, newKbType *TypeKeyboard, status int) error {
@@ -124,13 +124,13 @@ func ReadSendMessageRequest(fileName string) (*SendMessage, error) {
 		var err error
 		//	Check Whether reply type is keyboard button or inline keyboard button
 		if keyboard, exist := reply[KEYBOARD]; exist {
-			reply[KEYBOARD], err = DetectingKeyboardType[KeyboardButton](keyboard, KEYBOARD)
+			reply[KEYBOARD], err = detectingKeyboardType[KeyboardButton](keyboard, KEYBOARD)
 			if err != nil {
 				return nil, errors.New("can not get 'keyboard' in replies")
 			}
 		}
 		if inlineKeyboard, exist := reply[INLINE_KEYBOARD]; exist {
-			reply[INLINE_KEYBOARD], err = DetectingKeyboardType[InlineKeyboardButton](inlineKeyboard, INLINE_KEYBOARD)
+			reply[INLINE_KEYBOARD], err = detectingKeyboardType[InlineKeyboardButton](inlineKeyboard, INLINE_KEYBOARD)
 			if err != nil {
 				return nil, errors.New("can not get 'inline_keyboard' in replies")
 			}
