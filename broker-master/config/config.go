@@ -1,8 +1,11 @@
 package config
 
+var cfg *Config
+
 type Config struct {
 	Broker struct {
-		Port int `env:"APPLICATION_PORT" env-deafult:"8081" env-description:"Broker app port for gRPC"`
+		Port        int    `env:"APPLICATION_PORT" env-deafult:"8081" env-description:"Broker app port for gRPC"`
+		StorageType string `env:"STORAGE_TYPE" env-deafult:"NOT_PERSISTED" env-description:"it must be one of (POSTGRES, CASSANDRA, NOT_PERSISTED)"`
 	}
 
 	PostgresDB struct {
@@ -25,13 +28,24 @@ type Config struct {
 	}
 
 	CassandraDB struct {
-		Host     []string `env:"CASSANDRA_HOSTS" env-default:"localhost" env-description:"Database host for service"`
-		Port     int      `env:"CASSANDRA_PORT" env-default:"9042" env-description:"Cassandra port for service"`
-		Keyspace string   `env:"CASSANDRA_KEYSPACE" env-default:"broker" env-description:"Cassandra keyspace for service"`
-		Username string   `env:"CASSANDRA_USERNAME" env-default:"admin" env-description:"Cassandra username for service"`
-		Password string   `env:"CASSANDRA_PASSWORD" env-default:"admin" env-description:"Cassandra password for service"`
+		Host          string `env:"CASSANDRA_HOSTS" env-default:"localhost" env-description:"Database host for service"`
+		Port          int    `env:"CASSANDRA_PORT" env-default:"9042" env-description:"Cassandra port for service"`
+		Keyspace      string `env:"CASSANDRA_KEYSPACE" env-default:"broker" env-description:"Cassandra keyspace for service"`
+		Username      string `env:"CASSANDRA_USERNAME" env-default:"admin" env-description:"Cassandra username for service"`
+		Password      string `env:"CASSANDRA_PASSWORD" env-default:"admin" env-description:"Cassandra password for service"`
+		BatchSize     int    `env:"CASSANDRA_BATCH_SIZE" env-default:"100" env-description:"Cassandra batch size for batch daemon"`
+		TimeThreshold int    `env:"CASSANDRA_TIME" env-default:"5" env-description:"Cassandra time ticker for batch threshold"`
 	}
 
 	Graylog struct {
 	}
+}
+
+func SetConfigInstance(newCfg *Config) {
+	cfg = new(Config)
+	cfg = newCfg
+}
+
+func GetConfigInstance() *Config {
+	return cfg
 }
