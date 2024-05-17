@@ -1,4 +1,4 @@
-version: '3'
+version: '3.8'
 
 services:
   prometheus:
@@ -36,7 +36,6 @@ services:
       - "${GRAFANA_PORT}:${GRAFANA_PORT}"
     volumes:
       - ${GRAFANA_PATH}:/etc/grafana/provisioning/datasources
-    # restart: unless-stopped
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
@@ -61,6 +60,23 @@ services:
       - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     volumes:
       - ${POSTGRES_PATH}:/var/lib/postgresql/data
+  
+  cassandra:
+    image: cassandra
+    container_name: cassandra
+    volumes:
+      - ${CASSANDRA1_PATH}:/var/lib/cassandra
+    ports:
+      - "${CASSANDRA_PORT}:${CASSANDRA_PORT}"
+    network_mode: "host"
+    hostname: ${CASSANDRA_HOSTS}
+    environment:
+      - CASSANDRA_CLUSTER_NAME=${CASSANDRA_CLUSTER}
+      - CASSANDRA_AUTHENTICATOR=PasswordAuthenticator
+      - CASSANDRA_AUTHORIZER=CassandraAuthorizer
+      - CASSANDRA_USERNAME=${CASSANDRA_USERNAME}
+      - CASSANDRA_PASSWORD=${CASSANDRA_PASSWORD}
+
 
 
 volumes:
