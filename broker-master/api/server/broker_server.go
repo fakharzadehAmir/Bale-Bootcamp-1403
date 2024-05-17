@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"sync"
 	"therealbroker/api/proto"
 	brokerModule "therealbroker/internal/broker"
 	"therealbroker/pkg/broker"
@@ -35,7 +36,6 @@ func (s ImplementedBrokerServer) Publish(ctx context.Context, request *proto.Pub
 
 	startTime := time.Now()
 	defer middleware.MethodDuration.WithLabelValues("publish").Observe(float64(time.Since(startTime).Microseconds()))
-
 	publishedMessage := broker.Message{
 		Body:       string(request.GetBody()),
 		Expiration: time.Duration(request.GetExpirationSeconds()),
@@ -43,13 +43,15 @@ func (s ImplementedBrokerServer) Publish(ctx context.Context, request *proto.Pub
 
 	msgId, err := s.broker.Publish(spanCtx, request.GetSubject(), publishedMessage)
 	if err != nil {
-		middleware.MethodCallsError.WithLabelValues("publish").Inc()
+
+		middleware.MethodCount.WithLabelValues("publish", "failed").Inc()
 		return nil, status.Errorf(codes.Unavailable, "Broker is closed")
 
 	}
 
 	reponse := &proto.PublishResponse{Id: int32(msgId)}
-	middleware.MethodCallsSuccess.WithLabelValues("publish").Inc()
+	middleware.MethodCount.WithLabelValues("publish", "successful").Inc()
+
 	return reponse, nil
 }
 
@@ -64,25 +66,46 @@ func (s ImplementedBrokerServer) Subscribe(request *proto.SubscribeRequest, stre
 	startTime := time.Now()
 	defer middleware.MethodDuration.WithLabelValues("subscirbe").Observe(float64(time.Since(startTime).Microseconds()))
 
+	var subErr error
 	middleware.ActiveSubscribers.Inc()
-	defer middleware.ActiveSubscribers.Dec()
 
 	messageChan, err := s.broker.Subscribe(spanCtx, request.GetSubject())
 	if err != nil {
-		middleware.MethodCallsError.WithLabelValues("subscribe").Inc()
+		middleware.MethodCount.WithLabelValues("subscribe", "failed").Inc()
 		return status.Errorf(codes.Unavailable, "Broker is closed ")
 	}
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func(ctx context.Context) {
+		defer func() {
+			middleware.ActiveSubscribers.Dec()
+			wg.Done()
+		}()
 
-	for msg := range messageChan {
-		response := &proto.MessageResponse{Body: []byte(msg.Body)}
-		err = stream.Send(response)
-		if err != nil {
-			middleware.MethodCallsError.WithLabelValues("subscribe").Inc()
-			return err
+		for {
+			select {
+			case msg, ok := <-messageChan:
+				if !ok {
+					return
+				}
+				go func(m broker.Message) {
+					if err := stream.Send(&(proto.MessageResponse{Body: []byte(m.Body)})); err != nil {
+						subErr = err
+					}
+				}(msg)
+			case <-ctx.Done():
+				return
+			}
 		}
+	}(stream.Context())
+	wg.Wait()
+	if subErr != nil {
+		middleware.MethodCount.WithLabelValues("subscribe", "failed").Inc()
+	} else {
+		middleware.MethodCount.WithLabelValues("subscribe", "successful").Inc()
 	}
-	middleware.MethodCallsSuccess.WithLabelValues("subscribe").Inc()
-	return nil
+
+	return subErr
 }
 
 func (s ImplementedBrokerServer) Fetch(ctx context.Context, request *proto.FetchRequest) (*proto.MessageResponse, error) {
@@ -99,7 +122,7 @@ func (s ImplementedBrokerServer) Fetch(ctx context.Context, request *proto.Fetch
 
 	message, err := s.broker.Fetch(spanCtx, request.GetSubject(), int(request.GetId()))
 	if err != nil {
-		middleware.MethodCallsError.WithLabelValues("fetch").Inc()
+		middleware.MethodCount.WithLabelValues("fetch", "failed").Inc()
 		switch err {
 		case broker.ErrUnavailable:
 			return nil, status.Errorf(codes.Unavailable, "Broker is closed")
@@ -110,7 +133,8 @@ func (s ImplementedBrokerServer) Fetch(ctx context.Context, request *proto.Fetch
 		}
 	}
 	response := &proto.MessageResponse{Body: []byte(message.Body)}
-	middleware.MethodCallsSuccess.WithLabelValues("fetch").Inc()
+
+	middleware.MethodCount.WithLabelValues("fetch", "successful").Inc()
 	return response, nil
 
 }
