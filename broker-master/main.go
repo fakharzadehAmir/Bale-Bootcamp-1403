@@ -1,15 +1,13 @@
 package main
 
 import (
+	"context"
 	"net"
 	"net/http"
-	"os"
-	"os/signal"
 	"strconv"
-	"syscall"
-	"therealbroker/api/client"
 	"therealbroker/api/server"
 	"therealbroker/config"
+	"therealbroker/pkg/database"
 	"therealbroker/pkg/middleware"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -37,13 +35,15 @@ func init() {
 	if err = cleanenv.ReadEnv(cfg); err != nil {
 		panic(err)
 	}
+	config.SetConfigInstance(cfg)
 }
-
 func main() {
-	// ctx := context.Background()
-	//	Graylog
+	ctx := context.Background()
+
+	log.Infof("requested storage type is %s\n", cfg.Broker.StorageType)
 
 	//	Prometheus created metrics initialization
+	go middleware.EvaluateEnvMetrics()
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {
 		err := http.ListenAndServe(":"+strconv.Itoa(cfg.Prometheus.Port), nil)
@@ -53,7 +53,7 @@ func main() {
 	}()
 
 	//	Jager created metrics initialization
-	closer, err := middleware.NewJaegerObject(*cfg, log)
+	closer, err := middleware.NewJaegerObject(*config.GetConfigInstance(), log)
 	if err != nil {
 		log.WithError(err).Fatalln("can not create a tracer object")
 	}
@@ -61,17 +61,35 @@ func main() {
 	defer closer.Close()
 	opentracing.SetGlobalTracer(middleware.Tracer)
 
-	//	Initial DB
+	//	Initial PostgresDB
+	dbInstance, err := database.ConnectToPg(ctx, config.GetConfigInstance(), log)
+	if err != nil {
+		log.WithError(err).Fatalln("could not connect to the postgres")
+	}
+	log.Infof("connected to database successfully on port %v\n", cfg.PostgresDB.Port)
+	defer func() {
+		if err := dbInstance.Close(); err != nil {
+			log.WithError(err).Warn("Failed to close postgres database connection")
+		}
+	}()
 
 	//	Initial CassandraDB
+	cassandraDbInstance, err := database.ConnectToCassandra(log)
+	if err != nil {
+		log.WithError(err).Fatalln("could not connect to the cassandra")
+	}
+	log.Infof("connected to cassandra database successfully on port %v\n", cfg.CassandraDB.Port)
+	defer func() {
+		cassandraDbInstance.Close()
+	}()
 
 	//	Initial Broker Module
 	brokerServer := server.NewImplementedServer()
-	log.Infoln("broker grpc server created successfully")
+	log.Infoln("broker server object created successfully")
 
 	//	Initialize RPC APIs
-	grpcServer := client.NewBrokerClient(brokerServer)
-	log.Infoln("broker grpc client created successfully")
+	grpcServer := server.NewBrokerServer(brokerServer)
+	log.Infoln("broker grpc server created successfully")
 
 	// Set up a listener for the gRPC server
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(cfg.Broker.Port))
@@ -81,17 +99,15 @@ func main() {
 	log.Infof("gRPC server is listening on port %v\n", cfg.Broker.Port)
 
 	// Serve gRPC Server
-	go func() {
-		if err := grpcServer.Serve(listener); err != nil {
-			log.WithError(err).Fatalf("Failed to start gRPC server")
-		}
-	}()
+	if err := grpcServer.Serve(listener); err != nil {
+		log.WithError(err).Fatalf("Failed to start gRPC server")
+	}
 
 	// Graceful shutdown handling
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	<-c
-	log.Println("Shutting down gRPC server...")
-	grpcServer.GracefulStop()
-	log.Println("Server successfully stopped")
+	// c := make(chan os.Signal, 1)
+	// signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	// <-c
+	// log.Println("Shutting down gRPC server...")
+	// grpcServer.GracefulStop()
+	// log.Println("Server successfully stopped")
 }
