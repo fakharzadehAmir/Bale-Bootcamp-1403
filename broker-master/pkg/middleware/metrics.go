@@ -50,7 +50,12 @@ var (
 		Name: "cpu_utilization_percent",
 	}, []string{"cpu"})
 
-	CPULoad1m = promauto.NewGauge(prometheus.GaugeOpts{Name: "cpu_load"})
+	CPULoad1m  = promauto.NewGauge(prometheus.GaugeOpts{Name: "cpu_load"})
+	Throughput = promauto.NewHistogram(
+		prometheus.HistogramOpts{
+			Name: "throughput",
+		},
+	)
 )
 
 func EvaluateEnvMetrics() {
