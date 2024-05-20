@@ -4,13 +4,27 @@ import (
 	"context"
 	"log"
 	"sync"
+	"time"
 
 	pb "therealbroker/api/proto"
 
 	"google.golang.org/grpc"
 )
 
-const address = "localhost:8080"
+const (
+	address        = "localhost:8080"
+	workerCount    = 1000
+	jobCount       = 50000
+	messagesPerJob = 1
+	timeout        = 2 * time.Minute
+	targetRate     = 50000.0           // Target rate in requests per minute
+	targetRPS      = targetRate / 60.0 // Target rate in requests per second
+)
+
+type Job struct {
+	jobType string
+	count   int
+}
 
 func main() {
 	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
@@ -18,25 +32,48 @@ func main() {
 		log.Fatalf("did not connect: %v", err)
 	}
 	defer conn.Close()
-	c := pb.NewBrokerClient(conn)
+	client := pb.NewBrokerClient(conn)
 
+	jobQueue := make(chan Job, jobCount)
 	var wg sync.WaitGroup
-	// Creating 5 goroutines for each of the Publish, Subscribe, and Fetch operations
-	for i := 0; i < 10000; i++ {
+
+	// Start workers
+	for i := 0; i < workerCount; i++ {
 		wg.Add(1)
-		go publishMessages(&wg, c, 100) // each goroutine will publish 10000 messages
-		// wg.Add(1)
-		// go subscribeMessages(&wg, c, 100) // each goroutine will attempt to subscribe 10000 times
-		// wg.Add(1)
-		// go fetchMessages(&wg, c, 100) // each goroutine will fetch 10000 messages
+		go worker(&wg, jobQueue, client)
 	}
-	wg.Wait() // Wait for all goroutines to complete
+
+	ticker := time.NewTicker(time.Duration(1 * time.Millisecond))
+	defer ticker.Stop()
+
+	go func() {
+		for range ticker.C {
+			jobQueue <- Job{jobType: "publish", count: messagesPerJob}
+		}
+	}()
+
+	time.Sleep(timeout)
+	close(jobQueue)
+	wg.Wait()
 }
 
-func publishMessages(wg *sync.WaitGroup, c pb.BrokerClient, count int) {
+func worker(wg *sync.WaitGroup, jobs <-chan Job, client pb.BrokerClient) {
 	defer wg.Done()
+	for job := range jobs {
+		switch job.jobType {
+		case "publish":
+			publishMessages(client, job.count)
+		case "subscribe":
+			subscribeMessages(client, job.count)
+		case "fetch":
+			fetchMessages(client, job.count)
+		}
+	}
+}
+
+func publishMessages(client pb.BrokerClient, count int) {
 	for i := 0; i < count; i++ {
-		response, err := c.Publish(context.Background(), &pb.PublishRequest{
+		response, err := client.Publish(context.Background(), &pb.PublishRequest{
 			Subject:           "test",
 			Body:              []byte("message"),
 			ExpirationSeconds: int32(i),
@@ -49,31 +86,27 @@ func publishMessages(wg *sync.WaitGroup, c pb.BrokerClient, count int) {
 	}
 }
 
-func subscribeMessages(wg *sync.WaitGroup, c pb.BrokerClient, count int) {
-	defer wg.Done()
+func subscribeMessages(client pb.BrokerClient, count int) {
 	for i := 0; i < count; i++ {
-		stream, err := c.Subscribe(context.Background(), &pb.SubscribeRequest{Subject: "test"})
+		stream, err := client.Subscribe(context.Background(), &pb.SubscribeRequest{Subject: "test"})
 		if err != nil {
 			log.Printf("Subscribe failed: %v", err)
 			continue
 		}
-		go func() {
-			msg, err := stream.Recv()
-			if err != nil {
-				log.Printf("Error receiving message: %v", err)
-				return
-			}
-			log.Printf("Received message: %s", string(msg.Body))
-		}()
+		msg, err := stream.Recv()
+		if err != nil {
+			log.Printf("Error receiving message: %v", err)
+			return
+		}
+		log.Printf("Received message: %s", string(msg.Body))
 	}
 }
 
-func fetchMessages(wg *sync.WaitGroup, c pb.BrokerClient, count int) {
-	defer wg.Done()
+func fetchMessages(client pb.BrokerClient, count int) {
 	for i := 0; i < count; i++ {
-		response, err := c.Fetch(context.Background(), &pb.FetchRequest{
+		response, err := client.Fetch(context.Background(), &pb.FetchRequest{
 			Subject: "test",
-			Id:      int32(i), // assuming you want to fetch by IDs incrementally
+			Id:      int32(i),
 		})
 		if err != nil {
 			log.Printf("Fetch failed: %v", err)
