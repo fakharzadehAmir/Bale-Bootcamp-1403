@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"therealbroker/api/proto"
 	brokerModule "therealbroker/internal/broker"
@@ -34,12 +33,6 @@ func (s ImplementedBrokerServer) Publish(ctx context.Context, request *proto.Pub
 	}
 	spanCtx := opentracing.ContextWithSpan(ctx, span)
 	defer span.Finish()
-	fmt.Println("adfasdfasdfasdf")
-	fmt.Println("adfasdfasdfasdf")
-	fmt.Println("adfasdfasdfasdf")
-	fmt.Println("adfasdfasdfasdf")
-	fmt.Println("adfasdfasdfasdf")
-	fmt.Println("adfasdfasdfasdf")
 	startTime := time.Now()
 	defer middleware.MethodDuration.WithLabelValues("publish").Observe(float64(time.Since(startTime).Microseconds()))
 	defer middleware.Throughput.Observe(float64(time.Since(startTime).Seconds()))
@@ -47,12 +40,6 @@ func (s ImplementedBrokerServer) Publish(ctx context.Context, request *proto.Pub
 		Body:       string(request.GetBody()),
 		Expiration: time.Duration(request.GetExpirationSeconds()),
 	}
-	fmt.Println("1324132413241")
-	fmt.Println("1324132413241")
-	fmt.Println("1324132413241")
-	fmt.Println("1324132413241")
-	fmt.Println("1324132413241")
-	fmt.Println("1324132413241")
 
 	msgId, err := s.broker.Publish(spanCtx, request.GetSubject(), publishedMessage)
 	if err != nil {
@@ -61,10 +48,6 @@ func (s ImplementedBrokerServer) Publish(ctx context.Context, request *proto.Pub
 		return nil, status.Errorf(codes.Unavailable, "Broker is closed")
 
 	}
-	fmt.Println("adsfadsfads")
-	fmt.Println("adsfasdfasd")
-	fmt.Println("1324132413241")
-	fmt.Println("1324132413241")
 
 	reponse := &proto.PublishResponse{Id: int32(msgId)}
 	middleware.MethodCount.WithLabelValues("publish", "successful").Inc()
