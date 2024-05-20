@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-const address = "localhost:8080"
+const address = "localhost:10000"
 
 func main() {
 	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
@@ -22,9 +22,9 @@ func main() {
 
 	var wg sync.WaitGroup
 	// Creating 5 goroutines for each of the Publish, Subscribe, and Fetch operations
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 10000; i++ {
 		wg.Add(1)
-		go publishMessages(&wg, c, 10) // each goroutine will publish 10000 messages
+		go publishMessages(&wg, c, 100) // each goroutine will publish 10000 messages
 		// wg.Add(1)
 		// go subscribeMessages(&wg, c, 100) // each goroutine will attempt to subscribe 10000 times
 		// wg.Add(1)
@@ -43,9 +43,9 @@ func publishMessages(wg *sync.WaitGroup, c pb.BrokerClient, count int) {
 		})
 		if err != nil {
 			log.Printf("Publish failed: %v", err)
-			continue
+		} else {
+			log.Printf("Published message ID: %d", response.Id)
 		}
-		log.Printf("Published message ID: %d", response.Id)
 	}
 }
 
