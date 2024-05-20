@@ -13,7 +13,7 @@ import (
 
 const (
 	address     = "localhost:8080"
-	workerCount = 100
+	workerCount = 10000
 	jobCount    = 60000
 	runDuration = 2 * time.Minute // Run the worker pool for 2 minutes
 )
