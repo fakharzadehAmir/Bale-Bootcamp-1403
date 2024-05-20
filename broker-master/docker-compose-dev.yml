@@ -4,7 +4,8 @@ services:
   prometheus:
     image: docker.arvancloud.ir/prom/prometheus
     container_name: prometheus
-    network_mode: "host"
+    networks:
+      - broker_net
     ports:
       - "${PROMETHEUS_PORT}:${PROMETHEUS_PORT}"
 
@@ -23,7 +24,8 @@ services:
   node_exporter:
     image: docker.arvancloud.ir/prom/node-exporter
     container_name: node_exporter
-    network_mode: "host"
+    networks:
+      - broker_net
     ports:
       - ${NODE_EXPORTER_PORT}:${NODE_EXPORTER_PORT}
 
@@ -31,7 +33,8 @@ services:
   grafana:
     image: docker.arvancloud.ir/grafana/grafana
     container_name: grafana
-    network_mode: "host"
+    networks:
+      - broker_net
     ports:
       - "${GRAFANA_PORT}:${GRAFANA_PORT}"
     volumes:
@@ -43,7 +46,8 @@ services:
   jaeger:
     image: docker.arvancloud.ir/jaegertracing/all-in-one
     container_name: jaeger
-    network_mode: "host"
+    networks:
+      - broker_net
     ports:
       - "${JAEGER_PORT1}:${JAEGER_PORT1}"
       - "${JAEGER_PORT2}:${JAEGER_PORT2}"
@@ -51,7 +55,8 @@ services:
   postgres:
     image: postgres
     container_name: postgres
-    network_mode: "host"
+    networks:
+      - broker_net
     environment:
       POSTGRES_DB: ${POSTGRES_DBNAME}
       POSTGRES_USER: ${POSTGRES_USERNAME}
@@ -68,7 +73,8 @@ services:
       - ${CASSANDRA1_PATH}:/var/lib/cassandra
     ports:
       - "${CASSANDRA_PORT}:${CASSANDRA_PORT}"
-    network_mode: "host"
+    networks:
+      - broker_net
     hostname: ${CASSANDRA_HOSTS}
     environment:
       - CASSANDRA_CLUSTER_NAME=${CASSANDRA_CLUSTER}
@@ -76,20 +82,25 @@ services:
       - CASSANDRA_AUTHORIZER=CassandraAuthorizer
       - CASSANDRA_USERNAME=${CASSANDRA_USERNAME}
       - CASSANDRA_PASSWORD=${CASSANDRA_PASSWORD}
-      
-  envoy:
-    image: docker.arvancloud.ir/envoyproxy/envoy:v1.19.1
-    container_name: envoy
-    ports:
-      - "10000:10000"
-      - "9901:9901"
-    volumes:
-      - ./setup/envoy/envoy.yaml:/etc/envoy/envoy.yaml
-    network_mode: "host"
-    command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--service-cluster", "envoy"]
 
-    
+  broker:
+    image: broker-app-bale
+    container_name: broker
+    build: .
+    env_file:
+      - .env.container
+    restart: on-failure
+    depends_on:
+      - postgres
+      - cassandra
+      - jaeger
+      - prometheus
+    networks:
+      - broker_net
 
+networks:
+  broker_net:
+    name: broker_net
 
 volumes:
   prom_data:

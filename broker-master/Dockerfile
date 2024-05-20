@@ -1,11 +1,20 @@
-FROM golang:latest
+# Use the latest Go image as the base image
+FROM golang:1.20-alpine3.18
 
-WORKDIR /app
+# Set the GOPATH environment variable
+ENV GOPATH=/go
 
-COPY go.mod ./
-RUN go mod download
+# Set the working directory inside the container
+WORKDIR /go/src/broker
 
-COPY main.go ./
-RUN go build -o /broker-bale
+# Copy the source code into the container
+COPY . .
 
-CMD [ "/broker-bale" ]
+# Install the application
+RUN go install -v ./...
+
+# Expose the application port
+EXPOSE 8080
+
+# Command to run the executable
+CMD ["/go/bin/therealbroker"]
