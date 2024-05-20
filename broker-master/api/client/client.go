@@ -22,9 +22,9 @@ func main() {
 
 	var wg sync.WaitGroup
 	// Creating 5 goroutines for each of the Publish, Subscribe, and Fetch operations
-	for i := 0; i < 500000; i++ {
+	for i := 0; i < 10000; i++ {
 		wg.Add(1)
-		go publishMessages(&wg, c, 20) // each goroutine will publish 10000 messages
+		go publishMessages(&wg, c, 100) // each goroutine will publish 10000 messages
 		// wg.Add(1)
 		// go subscribeMessages(&wg, c, 100) // each goroutine will attempt to subscribe 10000 times
 		// wg.Add(1)
