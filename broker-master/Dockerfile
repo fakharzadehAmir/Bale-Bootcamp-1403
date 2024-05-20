@@ -1,20 +1,20 @@
-# Use the latest Go image as the base image
-FROM golang:1.20-alpine3.18
+# Use a minimal base image
+FROM docker.arvancloud.ir/library/alpine:3.18
 
-# Set the GOPATH environment variable
-ENV GOPATH=/go
+# Install necessary CA certificates for HTTPS connections
+RUN apk add --no-cache ca-certificates
 
 # Set the working directory inside the container
-WORKDIR /go/src/broker
+WORKDIR /app
 
-# Copy the source code into the container
-COPY . .
+# Copy the pre-built binary into the container
+COPY therealbroker .
 
-# Install the application
-RUN go install -v ./...
+# Ensure the binary is executable
+RUN chmod +x therealbroker
 
-# Expose the application port
+# Expose the application port (adjust if your application uses a different port)
 EXPOSE 8080
 
 # Command to run the executable
-CMD ["/go/bin/therealbroker"]
+CMD ["/app/therealbroker"]

@@ -20,12 +20,6 @@ services:
       - APPLICATION_PROM_PORT=${APPLICATION_PROM_PORT}
       - NODE_EXPORTER_PORT=${NODE_EXPORTER_PORT}
       
-  node_exporter:
-    image: docker.arvancloud.ir/prom/node-exporter
-    container_name: node_exporter
-    network_mode: "host"
-    ports:
-      - ${NODE_EXPORTER_PORT}:${NODE_EXPORTER_PORT}
 
 
   grafana:
@@ -49,7 +43,7 @@ services:
       - "${JAEGER_PORT2}:${JAEGER_PORT2}"
 
   postgres:
-    image: postgres
+    image: docker.arvancloud.ir/library/postgres
     container_name: postgres
     network_mode: "host"
     environment:
@@ -62,7 +56,7 @@ services:
       - ${POSTGRES_PATH}:/var/lib/postgresql/data
   
   cassandra:
-    image: cassandra
+    image: docker.arvancloud.ir/library/cassandra
     container_name: cassandra
     volumes:
       - ${CASSANDRA1_PATH}:/var/lib/cassandra
@@ -77,17 +71,44 @@ services:
       - CASSANDRA_USERNAME=${CASSANDRA_USERNAME}
       - CASSANDRA_PASSWORD=${CASSANDRA_PASSWORD}
       
-  envoy:
-    image: docker.arvancloud.ir/envoyproxy/envoy:v1.19.1
-    container_name: envoy
-    ports:
-      - "10000:10000"
-      - "9901:9901"
-    volumes:
-      - ./setup/envoy/envoy.yaml:/etc/envoy/envoy.yaml
+  # envoy:
+  #   image: docker.arvancloud.ir/envoyproxy/envoy:v1.19.1
+  #   container_name: envoy
+  #   ports:
+  #     - "10000:10000"
+  #     - "9901:9901"
+  #   volumes:
+  #     - ./setup/envoy/envoy.yaml:/etc/envoy/envoy.yaml
+  #   network_mode: "host"
+  #   command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--service-cluster", "envoy"]
+  therealbroker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: therealbroker
     network_mode: "host"
-    command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--service-cluster", "envoy"]
-
+    ports:
+      - "8080:8080"
+    depends_on:
+      - prometheus
+      - jaeger
+      - postgres
+      - cassandra
+    restart: on-failure
+    environment:
+      - PROMETHEUS_HOST=${PROMETHEUS_HOST}
+      - PROMETHEUS_PORT=${PROMETHEUS_PORT}
+      - APPLICATION_HOST=${APPLICATION_HOST}
+      - APPLICATION_PROM_PORT=${APPLICATION_PROM_PORT}
+      - NODE_EXPORTER_PORT=${NODE_EXPORTER_PORT}
+      - POSTGRES_DB=${POSTGRES_DBNAME}
+      - POSTGRES_USER=${POSTGRES_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - CASSANDRA_CLUSTER_NAME=${CASSANDRA_CLUSTER}
+      - CASSANDRA_HOSTS=${CASSANDRA_HOSTS}
+      - CASSANDRA_PORT=${CASSANDRA_PORT}
+      - CASSANDRA_USERNAME=${CASSANDRA_USERNAME}
+      - CASSANDRA_PASSWORD=${CASSANDRA_PASSWORD}
     
 
 
