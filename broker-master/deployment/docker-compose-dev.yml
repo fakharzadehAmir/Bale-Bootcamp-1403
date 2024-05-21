@@ -4,7 +4,8 @@ services:
   prometheus:
     image: docker.arvancloud.ir/prom/prometheus
     container_name: prometheus
-    network_mode: "host"
+    networks:
+      - broker_net
     ports:
       - "${PROMETHEUS_PORT}:${PROMETHEUS_PORT}"
 
@@ -18,14 +19,16 @@ services:
       - PROMETHEUS_PORT=${PROMETHEUS_PORT}
       - APPLICATION_HOST=${APPLICATION_HOST}
       - APPLICATION_PROM_PORT=${APPLICATION_PROM_PORT}
-      - NODE_EXPORTER_PORT=${NODE_EXPORTER_PORT}
-      
+    env_file:
+      - .env.deploy
+
 
 
   grafana:
     image: docker.arvancloud.ir/grafana/grafana
     container_name: grafana
-    network_mode: "host"
+    networks:
+      - broker_net
     ports:
       - "${GRAFANA_PORT}:${GRAFANA_PORT}"
     volumes:
@@ -33,19 +36,27 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+    env_file:
+      - .env.deploy
+
 
   jaeger:
     image: docker.arvancloud.ir/jaegertracing/all-in-one
     container_name: jaeger
-    network_mode: "host"
+    networks:
+      - broker_net
     ports:
       - "${JAEGER_PORT1}:${JAEGER_PORT1}"
       - "${JAEGER_PORT2}:${JAEGER_PORT2}"
+    env_file:
+      - .env.deploy
+
 
   postgres:
-    image: docker.arvancloud.ir/library/postgres
+    image: postgres
     container_name: postgres
-    network_mode: "host"
+    networks:
+      - broker_net
     environment:
       POSTGRES_DB: ${POSTGRES_DBNAME}
       POSTGRES_USER: ${POSTGRES_USERNAME}
@@ -54,15 +65,19 @@ services:
       - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     volumes:
       - ${POSTGRES_PATH}:/var/lib/postgresql/data
+    env_file:
+      - .env.deploy
+
   
   cassandra:
-    image: docker.arvancloud.ir/library/cassandra
+    image: cassandra
     container_name: cassandra
     volumes:
       - ${CASSANDRA1_PATH}:/var/lib/cassandra
     ports:
       - "${CASSANDRA_PORT}:${CASSANDRA_PORT}"
-    network_mode: "host"
+    networks:
+      - broker_net
     hostname: ${CASSANDRA_HOSTS}
     environment:
       - CASSANDRA_CLUSTER_NAME=${CASSANDRA_CLUSTER}
@@ -70,26 +85,33 @@ services:
       - CASSANDRA_AUTHORIZER=CassandraAuthorizer
       - CASSANDRA_USERNAME=${CASSANDRA_USERNAME}
       - CASSANDRA_PASSWORD=${CASSANDRA_PASSWORD}
-      
+    env_file:
+      - .env.deploy
+
+
+
   envoy:
     image: docker.arvancloud.ir/envoyproxy/envoy:v1.19.1
     container_name: envoy
     ports:
-      - "10000:10000"
+      - "${DOWNSTREAM_PORT}:${DOWNSTREAM_PORT}"
       - "9901:9901"
     volumes:
-      - ./setup/envoy/envoy.yaml:/etc/envoy/envoy.yaml
-    network_mode: "host"
+      - ${ENVOY_PATH}:/etc/envoy/envoy.yaml
     command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--service-cluster", "envoy"]
-  
+    networks:
+      - broker_net
+    env_file:
+      - .env.deploy
+
+
   therealbroker:
     build:
-      context: .
+      context: ../
       dockerfile: Dockerfile
     container_name: therealbroker
-    network_mode: "host"
     ports:
-      - "8080:8080"
+      - "${APPLICATION_PORT}:${APPLICATION_PORT}"
     depends_on:
       - prometheus
       - jaeger
@@ -98,8 +120,13 @@ services:
       - envoy
     restart: on-failure
     env_file:
-      - .env    
+      - .env.deploy
+    networks:
+      - broker_net
 
+networks:
+  broker_net:
+    name: broker_net
 
 volumes:
   prom_data:
