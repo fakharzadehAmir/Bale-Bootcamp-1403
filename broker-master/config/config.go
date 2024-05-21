@@ -33,8 +33,8 @@ type Config struct {
 		Keyspace      string `env:"CASSANDRA_KEYSPACE" env-default:"broker" env-description:"Cassandra keyspace for service"`
 		Username      string `env:"CASSANDRA_USERNAME" env-default:"admin" env-description:"Cassandra username for service"`
 		Password      string `env:"CASSANDRA_PASSWORD" env-default:"admin" env-description:"Cassandra password for service"`
-		BatchSize     int    `env:"CASSANDRA_BATCH_SIZE" env-default:"100" env-description:"Cassandra batch size for batch daemon"`
-		TimeThreshold int    `env:"CASSANDRA_TIME" env-default:"5" env-description:"Cassandra time ticker for batch threshold"`
+		BatchSize     int    `env:"CASSANDRA_BATCH_SIZE" env-default:"10000" env-description:"Cassandra batch size for batch daemon"`
+		TimeThreshold int    `env:"CASSANDRA_TIME" env-default:"10" env-description:"Cassandra time ticker for batch threshold"`
 	}
 
 	Graylog struct {
