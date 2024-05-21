@@ -27,7 +27,11 @@ type PostgresDB struct {
 	log          *logrus.Logger
 	conn         *sql.DB
 	deletionList []string
-	// insertMessages []broker.Message
+
+	lastID         int
+	insertMutex    sync.Mutex
+	insertMessages []string
+	insertValues   []interface{}
 	sync.RWMutex
 }
 
@@ -48,10 +52,13 @@ func ConnectToPg(ctx context.Context, cfg *config.Config, logger *logrus.Logger)
 		conn.SetConnMaxIdleTime(1 * time.Second)
 
 		pgDatabase = &PostgresDB{
-			cfg:          cfg,
-			log:          logger,
-			conn:         conn,
-			deletionList: make([]string, 0),
+			cfg:            cfg,
+			log:            logger,
+			conn:           conn,
+			deletionList:   make([]string, 0),
+			insertMutex:    sync.Mutex{},
+			insertMessages: make([]string, 0),
+			insertValues:   make([]interface{}, 0),
 		}
 		//	Create Table
 		errConnPg = pgDatabase.createTable()
@@ -75,6 +82,17 @@ func ConnectToPg(ctx context.Context, cfg *config.Config, logger *logrus.Logger)
 			return
 		}
 		pgDatabase.log.Infoln("expired messages has been marked successfully")
+
+		// lastID
+		errConnPg = pgDatabase.getLastId()
+		if errConnPg != nil {
+			pgDatabase.log.WithError(errConnPg).Warn("could not find the last inserted id")
+			return
+		}
+		pgDatabase.log.Infof("last id is retrieved successfully %d", pgDatabase.lastID)
+
+		// batch insertion
+		go pgDatabase.scheduledBatchInsertion()
 
 		go pgDatabase.scheduledBatchDeletion()
 	})
@@ -106,6 +124,19 @@ func (pd *PostgresDB) createIndex() error {
 	return err
 }
 
+func (pd *PostgresDB) getLastId() error {
+	query := `SELECT COALESCE(MAX(id), 0) FROM messages;`
+	var lastID int
+
+	err := pd.conn.QueryRow(query).Scan(&lastID)
+	if err != nil {
+		return err
+	}
+
+	pd.lastID = lastID
+	return nil
+}
+
 func (pd *PostgresDB) updateExpiredMessages() error {
 	query := `
         UPDATE messages
@@ -128,18 +159,18 @@ func (pd *PostgresDB) AddMessage(ctx context.Context, msg broker.Message, subjec
 	span, _ := opentracing.StartSpanFromContext(ctx, "Add new message to postgresql")
 	defer span.Finish()
 
-	pd.Lock()
-	defer pd.Unlock()
-	var insertID = -1
+	pd.insertMutex.Lock()
+	defer pd.insertMutex.Unlock()
+	var insertID = pd.lastID
 	var expired = msg.Expiration == time.Duration(0)
-	query := `INSERT INTO messages (subject, body, expiration_time, added_time, removed) VALUES ($1, $2, $3, NOW(), $4) RETURNING id;`
+	insertQuery := fmt.Sprintf("($%d, $%d, $%d, NOW(), $%d)",
+		len(pd.insertValues)+1, len(pd.insertValues)+2,
+		len(pd.insertValues)+3, len(pd.insertValues)+4)
 
-	row := pd.conn.QueryRow(query, subject, []byte(msg.Body), int64(msg.Expiration), expired)
-	err := row.Scan(&insertID)
-	if err != nil {
-		pd.log.WithError(err).Warn("failed in inserting message")
-		return insertID, err
-	}
+	pd.insertMessages = append(pd.insertMessages, insertQuery)
+	pd.insertValues = append(pd.insertValues, subject, []byte(msg.Body), int64(msg.Expiration), expired)
+
+	pd.lastID++
 	return insertID, nil
 }
 
@@ -239,5 +270,22 @@ func (pd *PostgresDB) scheduledBatchDeletion() {
 			pd.deletionList = pd.deletionList[:0]
 		}
 		pd.Unlock()
+	}
+}
+func (pd *PostgresDB) scheduledBatchInsertion() {
+	ticker := time.NewTicker(time.Duration(5 * time.Second))
+
+	for range ticker.C {
+		pd.insertMutex.Lock()
+		if len(pd.insertMessages) > 0 {
+			query := `INSERT INTO messages (subject, body, expiration_time, added_time, removed) VALUES ` + strings.Join(pd.insertMessages, ", ")
+			_, err := pd.conn.Query(query, pd.insertValues...)
+			if err != nil {
+				pd.log.WithError(err).Warn("can not insert to postgres correctly")
+			}
+			pd.insertMessages = pd.insertMessages[:0]
+			pd.insertValues = pd.insertValues[:0]
+		}
+		pd.insertMutex.Unlock()
 	}
 }
