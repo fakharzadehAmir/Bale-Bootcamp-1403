@@ -12,13 +12,13 @@ import (
 )
 
 const (
-	address        = "localhost:8080"
+	address        = "localhost:10000"
 	workerCount    = 1000
 	jobCount       = 50000
 	messagesPerJob = 1
 	timeout        = 2 * time.Minute
-	targetRate     = 50000.0           // Target rate in requests per minute
-	targetRPS      = targetRate / 60.0 // Target rate in requests per second
+	targetRate     = 50000.0
+	targetRPS      = targetRate / 60.0
 )
 
 type Job struct {

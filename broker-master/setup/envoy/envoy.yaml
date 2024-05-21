@@ -28,6 +28,18 @@ static_resources:
                         - match: { prefix: "/" }
                           route:
                             cluster: broker_backend
+
+                        - match: { prefix: "/publish" }
+                          route:
+                            cluster: broker_backend
+
+                        - match: { prefix: "/subscribe" }
+                          route:
+                            cluster: broker_backend
+
+                        - match: { prefix: "/fetch" }
+                          route:
+                            cluster: broker_backend
                       cors:
                         allow_origin_string_match:
                           - prefix: "*"
