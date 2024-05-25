@@ -16,8 +16,8 @@ var (
 		Name: "active_subscribers",
 	})
 
-	MethodCount = promauto.NewCounterVec(
-		prometheus.CounterOpts{
+	MethodCount = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
 			Name: "method_count",
 		},
 		[]string{"method", "status"},
@@ -50,12 +50,7 @@ var (
 		Name: "cpu_utilization_percent",
 	}, []string{"cpu"})
 
-	CPULoad1m  = promauto.NewGauge(prometheus.GaugeOpts{Name: "cpu_load"})
-	Throughput = promauto.NewHistogram(
-		prometheus.HistogramOpts{
-			Name: "throughput",
-		},
-	)
+	CPULoad1m = promauto.NewGauge(prometheus.GaugeOpts{Name: "cpu_load"})
 )
 
 func EvaluateEnvMetrics() {

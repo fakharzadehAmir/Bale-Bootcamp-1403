@@ -35,7 +35,6 @@ func (s ImplementedBrokerServer) Publish(ctx context.Context, request *proto.Pub
 	defer span.Finish()
 	startTime := time.Now()
 	defer middleware.MethodDuration.WithLabelValues("publish").Observe(float64(time.Since(startTime).Microseconds()))
-	defer middleware.Throughput.Observe(float64(time.Since(startTime).Seconds()))
 	publishedMessage := broker.Message{
 		Body:       string(request.GetBody()),
 		Expiration: time.Duration(request.GetExpirationSeconds()),
@@ -44,13 +43,13 @@ func (s ImplementedBrokerServer) Publish(ctx context.Context, request *proto.Pub
 	msgId, err := s.broker.Publish(spanCtx, request.GetSubject(), publishedMessage)
 	if err != nil {
 
-		middleware.MethodCount.WithLabelValues("publish", "failed").Inc()
+		middleware.MethodCount.WithLabelValues("publish", "failed").Observe(float64(time.Since(startTime)))
 		return nil, status.Errorf(codes.Unavailable, "Broker is closed")
 
 	}
 
 	reponse := &proto.PublishResponse{Id: int32(msgId)}
-	middleware.MethodCount.WithLabelValues("publish", "successful").Inc()
+	middleware.MethodCount.WithLabelValues("publish", "successful").Observe(float64(time.Since(startTime)))
 
 	return reponse, nil
 }
@@ -71,7 +70,7 @@ func (s ImplementedBrokerServer) Subscribe(request *proto.SubscribeRequest, stre
 
 	messageChan, err := s.broker.Subscribe(spanCtx, request.GetSubject())
 	if err != nil {
-		middleware.MethodCount.WithLabelValues("subscribe", "failed").Inc()
+		middleware.MethodCount.WithLabelValues("subscribe", "failed").Observe(float64(time.Since(startTime)))
 		return status.Errorf(codes.Unavailable, "Broker is closed ")
 	}
 	wg := sync.WaitGroup{}
@@ -100,9 +99,9 @@ func (s ImplementedBrokerServer) Subscribe(request *proto.SubscribeRequest, stre
 	}(stream.Context())
 	wg.Wait()
 	if subErr != nil {
-		middleware.MethodCount.WithLabelValues("subscribe", "failed").Inc()
+		middleware.MethodCount.WithLabelValues("subscribe", "failed").Observe(float64(time.Since(startTime)))
 	} else {
-		middleware.MethodCount.WithLabelValues("subscribe", "successful").Inc()
+		middleware.MethodCount.WithLabelValues("subscribe", "successful").Observe(float64(time.Since(startTime)))
 	}
 
 	return subErr
@@ -122,7 +121,7 @@ func (s ImplementedBrokerServer) Fetch(ctx context.Context, request *proto.Fetch
 
 	message, err := s.broker.Fetch(spanCtx, request.GetSubject(), int(request.GetId()))
 	if err != nil {
-		middleware.MethodCount.WithLabelValues("fetch", "failed").Inc()
+		middleware.MethodCount.WithLabelValues("fetch", "failed").Observe(float64(time.Since(startTime)))
 		switch err {
 		case broker.ErrUnavailable:
 			return nil, status.Errorf(codes.Unavailable, "Broker is closed")
@@ -134,7 +133,7 @@ func (s ImplementedBrokerServer) Fetch(ctx context.Context, request *proto.Fetch
 	}
 	response := &proto.MessageResponse{Body: []byte(message.Body)}
 
-	middleware.MethodCount.WithLabelValues("fetch", "successful").Inc()
+	middleware.MethodCount.WithLabelValues("fetch", "successful").Observe(float64(time.Since(startTime)))
 	return response, nil
 
 }
