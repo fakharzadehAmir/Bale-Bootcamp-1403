@@ -47,15 +47,3 @@ func StartSpanFromGRPC(ctx context.Context, operationName string) (opentracing.S
 
 	return Tracer.StartSpan(operationName, ext.RPCServerOption(spanContext)), nil
 }
-
-func InjectSpanIntoGRPC(ctx context.Context, span opentracing.Span) (context.Context, error) {
-	md := metadata.New(nil)
-	err := span.Tracer().Inject(
-		span.Context(),
-		opentracing.HTTPHeaders,
-		opentracing.HTTPHeadersCarrier(md))
-	if err != nil {
-		return ctx, err
-	}
-	return metadata.NewOutgoingContext(ctx, md), nil
-}
