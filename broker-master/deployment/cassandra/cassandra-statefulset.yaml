@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cassandra
+  namespace: default
+spec:
+  serviceName: "cassandra"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cassandra
+  template:
+    metadata:
+      labels:
+        app: cassandra
+    spec:
+      containers:
+      - name: cassandra
+        image: docker.arvancloud.ir/library/cassandra
+        ports:
+        - containerPort: 9042
+        env:
+        - name: CASSANDRA_CLUSTER_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: cassandra-config
+              key: CASSANDRA_CLUSTER
+        - name: CASSANDRA_AUTHENTICATOR
+          valueFrom:
+            configMapKeyRef:
+              name: cassandra-config
+              key: CASSANDRA_AUTHENTICATOR
+        - name: CASSANDRA_AUTHORIZER
+          valueFrom:
+            configMapKeyRef:
+              name: cassandra-config
+              key: CASSANDRA_AUTHORIZER
+        - name: CASSANDRA_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: cassandra-config
+              key: CASSANDRA_USERNAME
+        - name: CASSANDRA_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: cassandra-config
+              key: CASSANDRA_PASSWORD
+        volumeMounts:
+        - name: cassandra-storage
+          mountPath: /var/lib/cassandra
+      volumes:
+      - name: cassandra-storage
+        persistentVolumeClaim:
+          claimName: cassandra-pvc

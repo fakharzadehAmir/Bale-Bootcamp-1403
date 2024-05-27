@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cassandra-config
+  namespace: default
+data:
+  CASSANDRA_CLUSTER: "BrokerCluster"
+  CASSANDRA_AUTHENTICATOR: "PasswordAuthenticator"
+  CASSANDRA_AUTHORIZER: "CassandraAuthorizer"
+  CASSANDRA_USERNAME: "broker_user"
+  CASSANDRA_PASSWORD: "broker_pass"
