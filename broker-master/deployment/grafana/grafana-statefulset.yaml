@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: grafana
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  serviceName: "grafana"
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: docker.arvancloud.ir/grafana/grafana
+        ports:
+          - containerPort: 3000
+        envFrom:
+          - configMapRef:
+              name: grafana-config
+        volumeMounts:
+          - mountPath: /etc/grafana/provisioning/datasources
+            name: grafana-storage
+      volumes:
+      - name: grafana-storage
+        persistentVolumeClaim:
+          claimName: grafana-pvc
+    

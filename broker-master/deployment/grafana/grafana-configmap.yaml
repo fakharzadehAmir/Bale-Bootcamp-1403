@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-config
+  namespace: default
+data:
+  GF_SECURITY_ADMIN_USER: broker_user
+  GF_SECURITY_ADMIN_PASSWORD: broker_pass
