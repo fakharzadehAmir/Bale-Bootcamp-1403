@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jaeger-config
+  namespace: default
+data:
+  JAEGER_PORT1: "16686"
+  JAEGER_PORT2: "4318"
