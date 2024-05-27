@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+data:
+  POSTGRES_DBNAME: broker_db
+  POSTGRES_USERNAME: broker_user
+  POSTGRES_PASSWORD: broker_pass
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_PATH: /home/amirox/Desktop/workspace/Extra/Bale-Bootcamp-403/broker-master/containers/postgres
