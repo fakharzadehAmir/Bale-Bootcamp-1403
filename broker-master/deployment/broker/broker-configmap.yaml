@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: therealbroker-config
+  namespace: default
+data:
+  APPLICATION_HOST: "localhost"
+  APPLICATION_PORT: "8080"
+  STORAGE_TYPE: "CASSANDRA"
+  POSTGRES_DBNAME: "broker_db"
+  POSTGRES_USERNAME: "broker_user"
+  POSTGRES_PASSWORD: "broker_pass"
+  POSTGRES_HOST: "postgres-headless.default.svc.cluster.local"
+  POSTGRES_PORT: "5432"
+  PROMETHEUS_HOST: "prometheus.default.svc.cluster.local"
+  APPLICATION_PROM_PORT: "9101"
+  PROMETHEUS_PORT: "9090"
+  NODE_EXPORTER_PORT: "9100"
+  GRAFANA_USER: "broker_user"
+  GRAFANA_PASSWORD: "broker_pass"
+  GRAFANA_PORT: "3000"
+  JAEGER_PORT1: "16686"
+  JAEGER_PORT2: "4318"
+  JAEGER_PORT3: "6831"
+  JAEGER_SERVICE: "brokerService"
+  JAEGER_HOST: "jaeger.default.svc.cluster.local"
+  CASSANDRA_HOSTS: "cassandra.default.svc.cluster.local"
+  CASSANDRA_PORT: "9042"
+  CASSANDRA_KEYSPACE: "broker_keyspace"
+  CASSANDRA_USERNAME: "broker_user"
+  CASSANDRA_PASSWORD: "broker_pass"
+  CASSANDRA_CLUSTER: "BrokerCluster"

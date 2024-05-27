@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: therealbroker
+  namespace: default
+spec:
+  serviceName: "therealbroker"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: therealbroker
+  template:
+    metadata:
+      labels:
+        app: therealbroker
+    spec:
+      containers:
+      - name: therealbroker
+        image: localhost:5000/deployment-therealbroker
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: therealbroker-config
+        
