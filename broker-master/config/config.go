@@ -37,6 +37,16 @@ type Config struct {
 		TimeThreshold int    `env:"CASSANDRA_TIME" env-default:"10" env-description:"Cassandra time ticker for batch threshold"`
 	}
 
+	ScyllaDB struct {
+		Host          string `env:"SCYLLA_HOSTS" env-default:"localhost" env-description:"Database host for service"`
+		Port          int    `env:"SCYLLA_PORT" env-default:"9042" env-description:"Scylla port for service"`
+		Keyspace      string `env:"SCYLLA_KEYSPACE" env-default:"broker" env-description:"Scylla keyspace for service"`
+		Username      string `env:"SCYLLA_USERNAME" env-default:"admin" env-description:"Scylla username for service"`
+		Password      string `env:"SCYLLA_PASSWORD" env-default:"admin" env-description:"Scylla password for service"`
+		BatchSize     int    `env:"SCYLLA_BATCH_SIZE" env-default:"20000" env-description:"Scylla batch size for batch daemon"`
+		TimeThreshold int    `env:"SCYLLA_TIME" env-default:"10" env-description:"Scylla time ticker for batch threshold"`
+	}
+
 	Graylog struct {
 	}
 }

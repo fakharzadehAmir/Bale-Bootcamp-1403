@@ -70,35 +70,56 @@ services:
       - CASSANDRA_AUTHORIZER=CassandraAuthorizer
       - CASSANDRA_USERNAME=${CASSANDRA_USERNAME}
       - CASSANDRA_PASSWORD=${CASSANDRA_PASSWORD}
-      
-  envoy:
-    image: docker.arvancloud.ir/envoyproxy/envoy:v1.19.1
-    container_name: envoy
-    ports:
-      - "10000:10000"
-      - "9901:9901"
-    volumes:
-      - ./setup/envoy/envoy.yaml:/etc/envoy/envoy.yaml
-    network_mode: "host"
-    command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--service-cluster", "envoy"]
   
-  therealbroker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: therealbroker
+  scylla:
+    image: docker.arvancloud.ir/scylladb/scylla
+    container_name: scylla
     network_mode: "host"
     ports:
-      - "8080:8080"
-    depends_on:
-      - prometheus
-      - jaeger
-      - postgres
-      - cassandra
-      - envoy
-    restart: on-failure
-    env_file:
-      - .env    
+      - "${SCYLLA_PORT1}:${SCYLLA_PORT1}"
+      - "${SCYLLA_PORT2}:${SCYLLA_PORT2}"
+      - "${SCYLLA_PORT3}:${SCYLLA_PORT3}"
+    volumes:
+      - ${SCYLLA_PATH}:/var/lib/scylla
+    environment:
+      - SCYLLA_CLUSTER_NAME=${SCYLLA_CLUSTER}
+      - SCYLLA_SEEDS=${SCYLLA_SEED}
+      - SCYLLA_API_ADDRESS=${SCYLLA_ADDRESS}
+      - SCYLLA_API_PORT=${SCYLLA_PORT3}
+      - SCYLLA_PASSWORD_AUTH=true
+      - SCYLLA_USERNAME=${SCYLLA_USERNAME}
+      - SCYLLA_PASSWORD=${SCYLLA_PASSWORD}
+    
+
+      
+  # envoy:
+  #   image: docker.arvancloud.ir/envoyproxy/envoy:v1.19.1
+  #   container_name: envoy
+  #   ports:
+  #     - "10000:10000"
+  #     - "9901:9901"
+  #   volumes:
+  #     - ./setup/envoy/envoy.yaml:/etc/envoy/envoy.yaml
+  #   network_mode: "host"
+  #   command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--service-cluster", "envoy"]
+  
+  # therealbroker:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: therealbroker
+  #   network_mode: "host"
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     - prometheus
+  #     - jaeger
+  #     - postgres
+  #     # - cassandra
+  #     # - envoy
+  #   restart: on-failure
+  #   env_file:
+  #     - .env    
 
 
 volumes:

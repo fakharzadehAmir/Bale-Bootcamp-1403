@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	address        = "localhost:10000"
+	address        = "localhost:8080"
 	workerCount    = 1000
 	jobCount       = 50000
 	messagesPerJob = 1

@@ -74,13 +74,23 @@ func main() {
 	}()
 
 	//	Initial CassandraDB
-	cassandraDbInstance, err := database.ConnectToCassandra(log)
+	// cassandraDbInstance, err := database.ConnectToCassandra(log)
+	// if err != nil {
+	// 	log.WithError(err).Fatalln("could not connect to the cassandra")
+	// }
+	// log.Infof("connected to cassandra database successfully on port %v\n", cfg.CassandraDB.Port)
+	// defer func() {
+	// 	cassandraDbInstance.Close()
+	// }()
+
+	//	Initial ScyllaDB
+	scyllaDB, err := database.ConnectToScylla(log)
 	if err != nil {
-		log.WithError(err).Fatalln("could not connect to the cassandra")
+		log.WithError(err).Warnln("could not connect to the scylla")
 	}
-	log.Infof("connected to cassandra database successfully on port %v\n", cfg.CassandraDB.Port)
+	log.Infof("connected to scylla database successfully on port %v\n", cfg.ScyllaDB.Port)
 	defer func() {
-		cassandraDbInstance.Close()
+		scyllaDB.Close()
 	}()
 
 	//	Initial Broker Module

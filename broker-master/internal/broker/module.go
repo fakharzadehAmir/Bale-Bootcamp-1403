@@ -7,6 +7,7 @@ import (
 	"therealbroker/config"
 	"therealbroker/pkg/broker"
 	"therealbroker/pkg/database"
+
 	"time"
 
 	"github.com/opentracing/opentracing-go"
@@ -15,6 +16,7 @@ import (
 const (
 	POSTGRES   = "POSTGRES"
 	CASSANDRA  = "CASSANDRA"
+	SCYLLA     = "SCYLLA"
 	GOLANG_MAP = "NOT_PERSISTED"
 )
 
@@ -34,6 +36,7 @@ type Module struct {
 	closed      bool
 	pgDb        database.DB
 	cassandraDb database.DB
+	scyllaDb    database.DB
 	storageType string
 	sync.RWMutex
 }
@@ -45,6 +48,7 @@ func NewModule() broker.Broker {
 		storageType: config.GetConfigInstance().Broker.StorageType,
 		pgDb:        database.GetDatabaseInstance(),
 		cassandraDb: database.GetCassandraInstance(),
+		scyllaDb:    database.GetScyllaInstance(),
 	}
 }
 
@@ -92,6 +96,8 @@ func (m *Module) Publish(ctx context.Context, subject string, msg broker.Message
 			}
 		case CASSANDRA:
 			newMsgId, _ = m.cassandraDb.AddMessage(storeCtx, msg, subject)
+		case SCYLLA:
+			newMsgId, _ = m.scyllaDb.AddMessage(storeCtx, msg, subject)
 		}
 		storeSpan.Finish()
 
@@ -112,6 +118,8 @@ func (m *Module) Publish(ctx context.Context, subject string, msg broker.Message
 					m.pgDb.DeleteMessage(subjct, msgId)
 				case CASSANDRA:
 					m.cassandraDb.DeleteMessage(subjct, msgId)
+				case SCYLLA:
+					m.scyllaDb.DeleteMessage(subjct, msgId)
 				}
 
 			}(newMsgId, subject, msg.Expiration)
@@ -151,6 +159,11 @@ func (m *Module) Subscribe(ctx context.Context, subject string) (<-chan broker.M
 				}
 			case CASSANDRA:
 				messages, _ := m.cassandraDb.GetMessagesBySubject(ctx, subj)
+				for _, msg := range messages {
+					channel <- msg
+				}
+			case SCYLLA:
+				messages, _ := m.scyllaDb.GetMessagesBySubject(ctx, subj)
 				for _, msg := range messages {
 					channel <- msg
 				}
@@ -194,6 +207,11 @@ func (m *Module) Fetch(ctx context.Context, subject string, id int) (broker.Mess
 			}
 		case CASSANDRA:
 			msg, errRetrieving = m.cassandraDb.FetchMessage(retrieveCtx, id, subject)
+			if errRetrieving != nil {
+				return broker.Message{}, errRetrieving
+			}
+		case SCYLLA:
+			msg, errRetrieving = m.scyllaDb.FetchMessage(retrieveCtx, id, subject)
 			if errRetrieving != nil {
 				return broker.Message{}, errRetrieving
 			}
